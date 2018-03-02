@@ -1,0 +1,17 @@
+---
+- name: Download Cloudera
+  get_url:
+    url: https://archive.cloudera.com/cm5/redhat/7/x86_64/cm/cloudera-manager.repo
+    dest: /etc/yum.repos.d/
+#    headers: 'Cookie:oraclelicense=accept-securebackup-cookie'
+    mode: 0444
+
+
+- name:  Install Cloudera
+  yum:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - cloudera-manager-agent
+  tags:
+    - cloudera

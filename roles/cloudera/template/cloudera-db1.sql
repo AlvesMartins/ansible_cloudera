@@ -1,0 +1,1 @@
+grant all on *.* to 'temp'@'%' identified by 'temp' with grant option;

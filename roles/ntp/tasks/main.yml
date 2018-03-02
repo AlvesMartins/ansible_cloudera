@@ -1,0 +1,41 @@
+---
+- name:  Install NTP
+  yum:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - ntp
+    - nscd
+  tags:
+    - ntp
+
+- name: test file
+  shell: cat /etc/ntp.conf | grep pool.ntp.br
+  register: result
+  ignore_errors: True
+
+
+- name: Set server NTP
+  shell: echo "server pool.ntp.br iburst" >> /etc/ntp.conf
+  when: result.stdout == ""
+  tags: ntp
+
+- name: Start services NTP
+  service:
+    name: ntpd
+    state: started
+    enabled: yes
+  tags: ntp
+
+- name: Set server NTP
+  shell: ntpq -pn
+  tags: ntp
+
+- name: Start services NSCD
+  service:
+    name: nscd
+    state: started
+    enabled: yes
+  tags: ntp
+
+

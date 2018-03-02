@@ -1,0 +1,28 @@
+---
+- name: Cloudera | Deploy and Security Instalation
+  hosts:
+    - master
+    - datanode
+  become: true
+  remote_user: centos
+  roles:
+    - roles/sysCDH
+    - roles/ntp
+    - roles/java
+
+- name: Cloudera | Deploy and Security Instalation
+  hosts:
+    - master
+  become: true
+  remote_user: centos
+  roles:
+    - roles/mariadb
+    - roles/cloudera
+
+- name: Cloudera | Agent Datanode
+  hosts:
+    - datanode
+  become: true
+  remote_user: centos
+  roles:
+    - roles/datanode

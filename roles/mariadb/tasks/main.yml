@@ -1,0 +1,91 @@
+---
+- name: Install Mariadb
+  yum:
+   name: '{{ item }}'
+   state: latest
+  with_items:
+    - mariadb
+    - mariadb-server
+    - MySQL-python
+  tags: mariadb
+
+- name: Start services Mariadb
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+  tags: mariadb
+
+- name: MariaDB | Create a new pass for root user
+  command: openssl rand -base64 6 creates=/root/.my.cnf
+  register: mysql_root_pass
+  tags:
+    - mariadb
+
+- name: MariaDB | Display new pass in playbook  output
+  debug:
+    msg: "New root pas {{mysql_root_pass.stdout}}"
+  when: mysql_root_pass.changed
+  tags:
+    - mariadb
+
+
+- name: MariaDB | Remove anonymous access
+  mysql_user: name="" host={{ item }} state=absent
+  with_items:
+    - localhost
+    - "{{ ansible_fqdn }}"
+  tags:
+    - mariadb
+
+- name: MariaDB | Remove test database
+  mysql_db: name=test state=absent
+  tags:
+    - mariadb
+
+- name: MariaDB | Change root pass
+  mysql_user: name=root host={{ item }} password={{ mysql_root_pass.stdout }}
+  with_items:
+    - "{{ ansible_fqdn }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  when: mysql_root_pass.changed
+  tags:
+    - mariadb
+
+- name: MariaDB | Publish file .my.cnf in the root home
+  template:
+    src: template/client-my-cnf.j2
+    dest: /root/.my.cnf
+  when: mysql_root_pass.changed
+  tags:
+    - mariadb
+
+- name: Database.cnf
+  template:
+    src: template/create-cloudera-db.sql
+    dest: /tmp/
+  tags: mariadb
+
+- name: MariaDB | Create a new pass for root user
+  shell: ls /etc/ | grep plink
+  register: mysql_root_key
+  ignore_errors: True
+  tags:
+    - mariadb
+
+- name: Valid
+  mysql_db:
+    state: import
+    name: all
+    target: /tmp/create-cloudera-db.sql
+  when: mysql_root_key.stdout == ""
+
+
+- name: Create Database
+  shell: |
+    rm -f /tmp/create-cloudera-db.sql
+    mkdir /etc/plink
+  tags: mariadb
+  when: mysql_root_key.stdout == ""

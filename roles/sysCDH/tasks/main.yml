@@ -1,0 +1,50 @@
+---
+- name: Install requirements
+  yum:
+   name: '{{ item }}'
+   state: latest
+  with_items:
+    - vim
+    - wget
+  tags: sysCDH
+
+- name: Limits
+  template:
+    src: template/swap.sh
+    dest: /home/
+  tags: sysCDH
+
+- name: Set Kernel
+  shell: |
+    source /home/swap.sh
+    rm /home/swap.sh
+  tags: sysCDH
+
+- name: Limits
+  template:
+    src: template/limits.conf
+    dest: /etc/security/limits.conf
+  tags: sysCDH
+
+- name: Stopped services tuned
+  service:
+    name: tuned
+    state: stopped
+    enabled: no
+  tags: sysCDH
+
+- name: Stop services firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+  ignore_errors: True
+  tags: sysCDH
+
+- name: Set conf
+  shell: |
+    sed -ri 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+    setenforce 0
+  ignore_errors: True
+  tags: sysCDH
+

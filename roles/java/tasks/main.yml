@@ -1,0 +1,58 @@
+---
+- name: test file
+  shell: ls /tmp/ | grep jdk
+  register: result
+  ignore_errors: True
+  tags: java
+
+- name: Download Java
+  get_url:
+    url: http://download.oracle.com/otn-pub/java/jdk/8u161-b12/2f38c3b165be4555a1fa6e98c45e0808/jdk-8u161-linux-x64.rpm
+    dest: /tmp/
+    headers: 'Cookie:oraclelicense=accept-securebackup-cookie'
+    mode: 0444
+  when: result.stdout == ""
+  tags: java
+
+- name: Install Java
+  yum:
+    name: /tmp/jdk-8u161-linux-x64.rpm
+    state: present
+  tags: java
+
+- name: Stop server transparent
+  shell: |
+    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  tags: java
+
+- name: test file
+  shell: ls /usr/share/java/ | grep mysql-connector-java.jar
+  register: result
+  ignore_errors: True
+  tags: java
+
+- name: Download Java-Mysql
+  get_url:
+    url: https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.42.tar.gz
+    dest: /tmp/
+#    headers: 'Cookie:oraclelicense=accept-securebackup-cookie'
+    mode: 0444
+  when: result.stdout == ""
+
+
+- name: Unarchive a file that needs to be downloaded
+  shell: |
+    sudo tar xf /tmp/mysql-connector-java-5.1.42.tar.gz
+    sudo mkdir -p /usr/share/java/
+  tags: java
+  when: result.stdout == ""
+
+- name: Copy file Java
+  shell: |
+    cp /tmp/mysql-connector-java-5.1.42/mysql-connector-java-5.1.42-bin.jar /usr/share/java/
+    ln -s /usr/share/java/mysql-connector-java-5.1.42-bin.jar /usr/share/java/mysql-connector-java.jar
+  tags: java
+  when: result.stdout == ""
+
+

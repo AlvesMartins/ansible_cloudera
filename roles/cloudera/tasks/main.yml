@@ -1,0 +1,77 @@
+---
+- name: Download Cloudera
+  get_url:
+    url: https://archive.cloudera.com/cm5/redhat/7/x86_64/cm/cloudera-manager.repo
+    dest: /etc/yum.repos.d/
+#    headers: 'Cookie:oraclelicense=accept-securebackup-cookie'
+    mode: 0444
+
+
+- name:  Install Cloudera
+  yum:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - cloudera-manager-daemons
+    - cloudera-manager-server
+    - cloudera-manager-agent
+  tags:
+    - cloudera
+- name: Database.cnf
+  template:
+    src: template/cloudera-db1.sql
+    dest: /tmp/
+  tags: mariadb
+
+- name: Database.cnf
+  template:
+    src: template/cloudera-db2.sql
+    dest: /tmp/
+  tags: cloudera
+
+- name: Cloudera | Create a new pass for root user
+  shell: ls /etc/ | grep plink2
+  register: cloudera_link
+  ignore_errors: True
+  tags:
+    - cloudera
+
+- name: Cloudera | Create a new pass for root user
+  shell: ls /etc/ | grep plink3
+  register: cloudera2
+  ignore_errors: True
+  tags:
+    - cloudera
+
+- name: Create user
+  mysql_db:
+    state: import
+    name: all
+    target: /tmp/cloudera-db1.sql
+  when: cloudera_link.stdout == ""
+
+- name: Repli
+  shell: |
+    /usr/share/cmf/schema/scm_prepare_database.sh mysql -h 127.0.0.1 -utemp -ptemp --scm-host 127.0.0.1 scm scm scm
+    mkdir /etc/plink3
+  tags: cloudera
+  when: cloudera2.stdout == ""
+
+- name: Delete user
+  mysql_db:
+    state: import
+    name: all
+    target: /tmp/cloudera-db2.sql
+  when: cloudera_link.stdout == ""
+
+- name: Start services Mariadb
+  service:
+    name: cloudera-scm-server
+    state: started
+    enabled: yes
+  tags: cloudera
+
+- name: Repli
+  shell: mkdir /etc/plink2
+  tags: cloudera
+  when: cloudera_link.stdout == ""
